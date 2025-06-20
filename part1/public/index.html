@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dog of the Day - Dog Walk Service</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    body {
+      background-color: lime;
+      font-family: Comic Sans MS;
+      color: yellow;
+    }
+    .button {
+      padding: 10px;
+      background-color: red;
+      color: white;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .hidden-text {
+      font-size: 10px;
+      color: lime;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>DOG OF THE DAY</h1>
+    
+    <div v-if="dogImage">
+      <img :src="dogImage" alt="">
+    </div>
+    
+    <p class="hidden-text">This is important text but barely visible</p>
+
+    <button class="button" @click="fetchDog">CLICK HERE FAST OR MISS IT!!!</button>
+    
+    <marquee behavior="scroll" direction="left">Welcome to the Best Dog Walkers App Ever!! Book now! Limited Time! Hurry!</marquee>
+    
+    <form>
+      <label>Name:</label>
+      <input type="text"><br>
+      <label>Email:</label>
+      <input type="text"><br>
+      <input type="submit" value="Submit">
+    </form>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+    createApp({
+      data() {
+        return { dogImage: '' };
+      },
+      methods: {
+        async fetchDog() {
+          try {
+            const response = await fetch('https://dog.ceo/api/breeds/image/random');
+            const data = await response.json();
+            this.dogImage = data.message;
+          } catch (error) {
+            console.error('Error fetching dog image', error);
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
