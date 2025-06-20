@@ -8,8 +8,12 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body class="bg-light">
-  <div id="app" class="container py-4">
-    <h1 class="mb-4 text-success">Walker Dashboard</h1>
+  <div id="app" class="container py-4">    
+    <!-- Header with Logout Button -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="text-primary">Owner Dashboard</h1>
+      <button class="btn btn-outline-danger" @click="logout">Logout</button>
+    </div>
 
     <!-- Alert messages -->
     <div v-if="message" class="alert alert-info">{{ message }}</div>
@@ -55,13 +59,27 @@
           }
         }
 
+        async function getCurrentUser() {
+          try {
+            const res = await fetch('/api/users/me');
+            if (!res.ok) throw new Error('Failed to fetch current user');
+            return await res.json();
+          } catch (err) {
+            console.error('Error getting current user:', err);
+            throw err;
+          }
+        }
+
         async function applyToWalk(requestId) {
           try {
+            const user = await getCurrentUser();
+
             const res = await fetch(`/api/walks/${requestId}/apply`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ walker_id: user })
+              body: JSON.stringify({ walker_id: user.user_id })
             });
+
             const result = await res.json();
 
             if (!res.ok) throw new Error(result.error || 'Application failed');
@@ -74,6 +92,15 @@
           }
         }
 
+        async function logout() {
+          try {
+            await fetch('/api/users/logout', { method: 'POST' });
+            window.location.href = '/';
+          } catch (err) {
+            console.error('Logout failed', err);
+          }
+        }
+
         onMounted(() => {
           loadWalkRequests();
         });
@@ -82,7 +109,8 @@
           walks,
           message,
           error,
-          applyToWalk
+          applyToWalk,
+          logout
         };
       }
     }).mount('#app');

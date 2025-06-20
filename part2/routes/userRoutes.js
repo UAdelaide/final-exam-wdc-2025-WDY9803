@@ -35,23 +35,79 @@ router.get('/me', (req, res) => {
   res.json(req.session.user);
 });
 
-// POST login (dummy version)
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
 
   try {
-    const [rows] = await db.query(`
-      SELECT user_id, username, role FROM Users
-      WHERE email = ? AND password_hash = ?
-    `, [email, password]);
+    const [users] = await db.query(`
+      SELECT user_id, username, password_hash, role FROM Users WHERE username = ?
+    `, [username]);
 
-    if (rows.length === 0) {
+    const user = users[0];
+
+    if (user.password_hash !== password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    res.json({ message: 'Login successful', user: rows[0] });
+    req.session.user = {
+      user_id: user.user_id,
+      username: user.username,
+      role: user.role
+    };
+
+    let redirectUrl = '';
+
+    if (user.role === 'owner') {
+      redirectUrl = '/owner-dashboard.html';
+    } else if (user.role === 'walker') {
+      redirectUrl = '/walker-dashboard.html';
+    } else {
+      redirectUrl = '/';
+    }
+
+    res.json({ message: 'Login successful', redirect: redirectUrl });
+
   } catch (error) {
     res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+router.post('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    res.clearCookie('connect.sid');
+    res.json({ message: 'Logged out' });
+  });
+});
+
+router.get('/dogs-list', async (req, res) => {
+  if (!req.session.user || req.session.user.role !== 'owner') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const ownerId = req.session.user.user_id;
+
+  try {
+    const [rows] = await db.query(`
+      SELECT DISTINCT dog_id, name FROM Dogs
+    `, [ownerId]);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch dogs' });
+  }
+});
+
+router.get('/dogs', async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT dog_id, name, size, owner_id FROM Dogs
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Failed to fetch dogs:', error);
+    res.status(500).json({ error: 'Failed to fetch dogs' });
   }
 });
 
